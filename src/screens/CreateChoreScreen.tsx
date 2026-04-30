@@ -9,14 +9,18 @@ import {
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../App";
+import { useAppContext } from "../context/AppContext";
+
 type Props = NativeStackScreenProps<RootStackParamList, "CreateChore">;
 
 
 export default function CreateChoreScreen({ navigation }: Props): JSX.Element {  const [choreName, setChoreName] = useState<string>("");
   const [value, setValue] = useState<string>("");
+  const { addChore } = useAppContext();
   const [frequency, setFrequency] = useState<string>("Daily");
   const [selectedChildren, setSelectedChildren] = useState<string[]>(["Emma"]);
 
+  
   const children = ["Emma", "Jack"];
   const frequencies = ["Daily", "Weekly", "One-time"];
 
@@ -29,11 +33,16 @@ export default function CreateChoreScreen({ navigation }: Props): JSX.Element { 
   };
 
 const handleSave = (): void => {
-  console.log({
-    choreName,
-    value,
-    frequency,
-    selectedChildren,
+  if (!choreName || !value) {
+    alert("Please enter a chore name and value.");
+    return;
+  }
+
+  addChore({
+    id: Date.now().toString(),
+    name: choreName,
+    reward: Number(value),
+    assignedTo: selectedChildren,
   });
 
   navigation.goBack();

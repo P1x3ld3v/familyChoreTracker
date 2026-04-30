@@ -1,6 +1,7 @@
 import React, { JSX } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { AppProvider } from "./src/context/AppContext";
 
 import WelcomeScreen from "./src/screens/WelcomeScreen";
 import ParentLoginScreen from "./src/screens/ParentLoginScreen";
@@ -32,6 +33,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App(): JSX.Element {
   return (
+    <AppProvider>
     <NavigationContainer>
       <Stack.Navigator
         initialRouteName="Welcome"
@@ -50,5 +52,6 @@ export default function App(): JSX.Element {
         <Stack.Screen name="ParentSetup" component={ParentSetupScreen} />
       </Stack.Navigator>
     </NavigationContainer>
+    </AppProvider>
   );
 }

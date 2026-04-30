@@ -10,6 +10,7 @@ import {
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../App";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppContext } from "../context/AppContext";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ParentDashboard">;
 
@@ -18,13 +19,27 @@ type TabType = "dashboard" | "pending" | "wallet" | "settings";
 export default function ParentDashboardScreen({
   navigation,
 }: Props): JSX.Element {
-    const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<TabType>("dashboard");
+  const insets = useSafeAreaInsets();
+  const { chores, completions, approveCompletion, rejectCompletion , walletBalance } = useAppContext();
 
-  const pendingApprovals = [
-    { id: 1, child: "Emma", emoji: "👧", chore: "Make Bed", value: 2 },
-    { id: 2, child: "Jack", emoji: "👦", chore: "Feed Dog", value: 1 },
-  ];
+  const [activeTab, setActiveTab] = useState<TabType>("dashboard");
+  const activeChores = chores.filter((chore) => !chore.completed);
+const totalChores = chores.length;
+const completedCount = chores.filter((chore) => chore.completed).length;
+
+const progressPercent =
+  totalChores === 0 ? 0 : Math.round((completedCount / totalChores) * 100);
+  const completedChores = chores.filter((chore) => chore.completed);
+  const recentActivity = completions
+  .filter((item) => item.status !== "pending")
+  .slice()
+  .reverse();
+
+
+
+const pendingApprovals = completions.filter(
+  (item) => item.status === "pending"
+);
 
   const title =
     activeTab === "dashboard"
@@ -78,19 +93,19 @@ export default function ParentDashboardScreen({
 
                   <View style={styles.childInfo}>
                     <Text style={styles.childName}>Emma</Text>
-                    <Text style={styles.childMeta}>
-                      4 of 6 chores completed
-                    </Text>
+                        <Text style={styles.childMeta}>
+                        {completedCount} of {totalChores} chores completed
+                        </Text>
                   </View>
                 </View>
 
                 <View style={styles.progressHeader}>
                   <Text style={styles.progressLabel}>Allowance Progress</Text>
-                  <Text style={styles.progressAmount}>$12 / $20</Text>
+                  <Text style={styles.progressAmount}>{progressPercent}%</Text>
                 </View>
 
                 <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: "60%" }]} />
+                  <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
                 </View>
               </View>
 
@@ -118,98 +133,86 @@ export default function ParentDashboardScreen({
                 </View>
               </View>
 
-              <View style={styles.card}>
+             <View style={styles.card}>
                 <Text style={styles.cardTitle}>Today's Chores</Text>
 
-                <View style={styles.choreGroup}>
-                  <View style={styles.groupHeader}>
-                    <View style={[styles.smallAvatar, styles.emmaAvatar]}>
-                      <Text style={styles.smallEmoji}>👧</Text>
-                    </View>
-                    <Text style={styles.groupName}>Emma</Text>
-                  </View>
+                {chores.length === 0 && (
+                    <Text style={styles.emptyText}>No chores yet. Add your first chore.</Text>
+                )}
 
-                  <View style={styles.choreRow}>
+                {completedChores.map((chore) => (
+                    <View key={chore.id} style={styles.choreRow}>
                     <View style={styles.completedDot}>
-                      <Text style={styles.checkText}>✓</Text>
+                        <Text style={styles.checkText}>✓</Text>
                     </View>
-                    <Text style={styles.completedChore}>Make Bed</Text>
-                  </View>
-
-                  <View style={styles.choreRow}>
-                    <View style={styles.completedDot}>
-                      <Text style={styles.checkText}>✓</Text>
+                    <Text style={styles.completedChore}>{chore.name}</Text>
                     </View>
-                    <Text style={styles.completedChore}>Clean Room</Text>
-                  </View>
+                ))}
 
-                  <View style={styles.choreRow}>
+                {activeChores.map((chore) => (
+                    <View key={chore.id} style={styles.choreRow}>
                     <View style={styles.emptyDot} />
-                    <Text style={styles.incompleteChore}>Do Homework</Text>
-                  </View>
-                </View>
-
-                <View style={styles.choreGroup}>
-                  <View style={styles.groupHeader}>
-                    <View style={[styles.smallAvatar, styles.jackAvatar]}>
-                      <Text style={styles.smallEmoji}>👦</Text>
+                    <Text style={styles.incompleteChore}>{chore.name}</Text>
                     </View>
-                    <Text style={styles.groupName}>Jack</Text>
-                  </View>
-
-                  <View style={styles.choreRow}>
-                    <View style={styles.completedDot}>
-                      <Text style={styles.checkText}>✓</Text>
-                    </View>
-                    <Text style={styles.completedChore}>Feed Dog</Text>
-                  </View>
-
-                  <View style={styles.choreRow}>
-                    <View style={styles.emptyDot} />
-                    <Text style={styles.incompleteChore}>Take Out Trash</Text>
-                  </View>
+                ))}
                 </View>
-              </View>
 
               <View style={styles.card}>
+                <Text style={styles.cardTitle}>Chores</Text>
+
+                {activeChores.length === 0 && (
+                  <Text style={styles.emptyText}>
+                    No chores yet. Add your first chore.
+                  </Text>
+                )}
+
+                {activeChores.map((chore) => (
+                  <View key={chore.id} style={styles.choreListRow}>
+                    <View>
+                      <Text style={styles.listTitle}>{chore.name}</Text>
+                      <Text style={styles.moneyText}>
+                        ${chore.reward.toFixed(2)}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.assignedText}>
+                      {chore.assignedTo.length > 0
+                        ? chore.assignedTo.join(", ")
+                        : "Unassigned"}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+                <View style={styles.card}>
                 <Text style={styles.cardTitle}>Recent Activity</Text>
 
-                <View style={styles.activityRow}>
-                  <View style={[styles.activityIcon, styles.greenIcon]}>
-                    <Text>✓</Text>
-                  </View>
-                  <View>
-                    <Text style={styles.activityTitle}>
-                      Emma earned $2 for Make Bed
-                    </Text>
-                    <Text style={styles.activityTime}>2 hours ago</Text>
-                  </View>
-                </View>
+                {recentActivity.length === 0 && (
+                    <Text style={styles.emptyText}>No recent activity yet.</Text>
+                )}
 
-                <View style={styles.activityRow}>
-                  <View style={[styles.activityIcon, styles.blueIcon]}>
-                    <Text>⏱</Text>
-                  </View>
-                  <View>
-                    <Text style={styles.activityTitle}>
-                      Jack submitted Feed Dog
-                    </Text>
-                    <Text style={styles.activityTime}>3 hours ago</Text>
-                  </View>
-                </View>
+                {recentActivity.map((item) => (
+                    <View key={item.id} style={styles.activityRow}>
+                    <View
+                        style={[
+                        styles.activityIcon,
+                        item.status === "approved" ? styles.greenIcon : styles.blueIcon,
+                        ]}
+                    >
+                        <Text>{item.status === "approved" ? "✓" : "×"}</Text>
+                    </View>
 
-                <View style={styles.activityRow}>
-                  <View style={[styles.activityIcon, styles.purpleIcon]}>
-                    <Text>$</Text>
-                  </View>
-                  <View>
-                    <Text style={styles.activityTitle}>
-                      $20 added to wallet
-                    </Text>
-                    <Text style={styles.activityTime}>Yesterday</Text>
-                  </View>
+                    <View>
+                        <Text style={styles.activityTitle}>
+                        {item.status === "approved"
+                            ? `${item.childName} earned $${item.reward} for ${item.choreName}`
+                            : `${item.childName}'s ${item.choreName} was rejected`}
+                        </Text>
+                        <Text style={styles.activityTime}>Just now</Text>
+                    </View>
+                    </View>
+                ))}
                 </View>
-              </View>
             </>
           )}
 
@@ -228,21 +231,21 @@ export default function ParentDashboardScreen({
                     <View
                       style={[
                         styles.pendingAvatar,
-                        item.child === "Emma"
+                        item.childName === "Emma"
                           ? styles.emmaAvatar
                           : styles.jackAvatar,
                       ]}
                     >
-                      <Text style={styles.smallEmoji}>{item.emoji}</Text>
+                      <Text style={styles.smallEmoji}>{<Text style={styles.smallEmoji}>👧</Text>}</Text>
                     </View>
 
                     <View style={styles.pendingInfo}>
                       <Text style={styles.pendingText}>
-                        {item.child} completed{" "}
-                        <Text style={styles.bold}>{item.chore}</Text>
+                        {item.childName} completed{" "}
+                        <Text style={styles.bold}>{item.choreName}</Text>
                       </Text>
                       <Text style={styles.moneyText}>
-                        +${item.value.toFixed(2)}
+                        +${item.reward.toFixed(2)}
                       </Text>
                     </View>
                   </View>
@@ -252,9 +255,10 @@ export default function ParentDashboardScreen({
                       style={styles.approveButton}
                       onPress={() =>
                         navigation.navigate("Approval", {
-                          child: item.child,
-                          chore: item.chore,
-                          value: item.value,
+                          child: item.childName,
+                          chore: item.choreName,
+                          value: item.reward,
+                          completionId: item.id,
                         })
                       }
                     >
@@ -273,7 +277,7 @@ export default function ParentDashboardScreen({
           {activeTab === "wallet" && (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Family Wallet</Text>
-              <Text style={styles.walletBalance}>$40</Text>
+<Text style={styles.walletBalance}>${walletBalance.toFixed(2)}</Text>
               <Text style={styles.pageSubtitle}>
                 Track allowances and rewards
               </Text>
@@ -341,12 +345,12 @@ export default function ParentDashboardScreen({
           )}
         </ScrollView>
 
-       <View
-  style={[
-    styles.bottomNav,
-    { paddingBottom: insets.bottom -75 },
-  ]}
->
+        <View
+          style={[
+            styles.bottomNav,
+            { paddingBottom: Math.max(insets.bottom, 10) },
+          ]}
+        >
           <Pressable
             style={styles.navItem}
             onPress={() => setActiveTab("dashboard")}
@@ -489,7 +493,7 @@ const styles = StyleSheet.create({
   },
   contentInner: {
     paddingHorizontal: 24,
-    paddingBottom: 110,
+    paddingBottom: 130,
   },
   centerHeader: {
     alignItems: "center",
@@ -629,6 +633,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginLeft: 34,
     marginBottom: 10,
+  },
+  choreListRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+  },
+  listTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#111827",
+  },
+  assignedText: {
+    color: "#6B7280",
+    fontSize: 12,
+    maxWidth: 120,
+    textAlign: "right",
+  },
+  emptyText: {
+    color: "#6B7280",
+    fontSize: 14,
   },
   completedDot: {
     width: 20,
@@ -839,9 +867,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
     paddingTop: 8,
-    paddingBottom: 18,
     flexDirection: "row",
     justifyContent: "space-around",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 12,
   },
   navItem: {
     alignItems: "center",

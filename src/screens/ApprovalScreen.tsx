@@ -2,11 +2,26 @@ import React, { JSX } from "react";
 import { SafeAreaView, View, Text, Pressable, StyleSheet } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../App";
+import { useAppContext } from "../context/AppContext";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Approval">;
 
-export default function ApprovalScreen({ navigation, route }: Props): JSX.Element {
-  const { child, chore, value } = route.params;
+export default function ApprovalScreen({
+  navigation,
+  route,
+}: Props): JSX.Element {
+  const { completionId, child, chore, value } = route.params;
+  const { approveCompletion, rejectCompletion } = useAppContext();
+
+  const handleApprove = (): void => {
+    approveCompletion(completionId);
+    navigation.goBack();
+  };
+
+  const handleReject = (): void => {
+    rejectCompletion(completionId);
+    navigation.goBack();
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -26,17 +41,11 @@ export default function ApprovalScreen({ navigation, route }: Props): JSX.Elemen
           <Text style={styles.choreName}>{chore}</Text>
           <Text style={styles.reward}>Earn ${value}</Text>
 
-          <Pressable
-            style={styles.approveButton}
-            onPress={() => navigation.goBack()}
-          >
+          <Pressable style={styles.approveButton} onPress={handleApprove}>
             <Text style={styles.approveText}>Approve</Text>
           </Pressable>
 
-          <Pressable
-            style={styles.rejectButton}
-            onPress={() => navigation.goBack()}
-          >
+          <Pressable style={styles.rejectButton} onPress={handleReject}>
             <Text style={styles.rejectText}>Reject</Text>
           </Pressable>
         </View>

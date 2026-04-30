@@ -1,18 +1,47 @@
 import React, { JSX } from "react";
-import { SafeAreaView, View, Text, Pressable, StyleSheet } from "react-native";
+import {
+  SafeAreaView,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  Alert,
+} from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../../App";
+import { useAppContext } from "../context/AppContext";
 
-export default function ChildDashboardScreen(): JSX.Element {
-  const chores = [
-    { id: 1, title: "Make Bed", value: 2, done: true },
-    { id: 2, title: "Feed Pet", value: 1, done: true },
-    { id: 3, title: "Laundry", value: 3, done: false },
-    { id: 4, title: "Set Table", value: 2, done: false },
-  ];
+type Props = NativeStackScreenProps<RootStackParamList, "ChildDashboard">;
+
+export default function ChildDashboardScreen({
+  navigation,
+}: Props): JSX.Element {
+  const { chores, submitCompletion, completions } = useAppContext();
+  const visibleChores = chores.filter((chore) => !chore.completed);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.greeting}>Hi Emma 👋</Text>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.headerRow}>
+          <Text style={styles.greeting}>Hi Emma 👋</Text>
+
+          <Pressable
+            style={styles.logoutButton}
+            onPress={() =>
+              Alert.alert("Logout", "Are you sure?", [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Logout",
+                  onPress: () => navigation.navigate("Welcome"),
+                },
+              ])
+            }
+          >
+            <Text style={styles.logoutText}>Logout</Text>
+          </Pressable>
+        </View>
+
         <Text style={styles.subtitle}>Let’s earn your allowance!</Text>
 
         <View style={styles.meterCard}>
@@ -27,27 +56,54 @@ export default function ChildDashboardScreen(): JSX.Element {
         <Text style={styles.sectionTitle}>Today’s Chores</Text>
 
         <View style={styles.choreList}>
-          {chores.map((chore) => (
-            <View
-              key={chore.id}
-              style={[styles.choreCard, chore.done && styles.choreCardDone]}
-            >
-              <View>
-                <Text style={styles.choreTitle}>{chore.title}</Text>
-                <Text style={styles.choreValue}>+${chore.value}</Text>
-              </View>
+          {visibleChores.length === 0 && (
+            <Text style={styles.emptyText}>
+              No chores yet. Ask your parent to add one.
+            </Text>
+          )}
 
-              <Pressable
-                style={[styles.choreButton, chore.done && styles.doneButton]}
-              >
-                <Text
-                  style={[styles.choreButtonText, chore.done && styles.doneText]}
-                >
-                  {chore.done ? "Done" : "Mark Done"}
-                </Text>
-              </Pressable>
-            </View>
-          ))}
+{visibleChores.map((chore) => {
+  const alreadyPending = completions.some(
+    (item) =>
+      item.choreId === chore.id &&
+      item.childName === "Emma" &&
+      item.status === "pending"
+  );
+
+  return (
+    <View key={chore.id} style={styles.choreCard}>
+      <View>
+        <Text style={styles.choreTitle}>{chore.name}</Text>
+        <Text style={styles.choreValue}>+${chore.reward}</Text>
+      </View>
+
+      <Pressable
+        disabled={alreadyPending}
+        style={({ pressed }) => [
+          styles.choreButton,
+          alreadyPending && styles.pendingButton,
+          pressed && { opacity: 0.6 },
+        ]}
+        onPress={() => {
+          submitCompletion({
+            id: Date.now().toString(),
+            choreId: chore.id,
+            choreName: chore.name,
+            childName: "Emma",
+            reward: chore.reward,
+            status: "pending",
+          });
+
+          Alert.alert("Submitted!", `${chore.name} sent for approval`);
+        }}
+      >
+        <Text style={styles.choreButtonText}>
+          {alreadyPending ? "Pending" : "Mark Done"}
+        </Text>
+      </Pressable>
+    </View>
+  );
+})}
         </View>
 
         <View style={styles.rewardRow}>
@@ -64,9 +120,11 @@ export default function ChildDashboardScreen(): JSX.Element {
 
         <View style={styles.payoutCard}>
           <Text style={styles.payoutTitle}>Next payout</Text>
-          <Text style={styles.payoutText}>Friday · You’ve earned $12 so far</Text>
+          <Text style={styles.payoutText}>
+            Friday · You’ve earned $12 so far
+          </Text>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -77,8 +135,29 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F8FB",
   },
   container: {
-    flex: 1,
     padding: 24,
+    paddingBottom: 48,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  pendingButton: {
+  backgroundColor: "#CBD5E1",
+},
+  logoutButton: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  logoutText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#334155",
   },
   greeting: {
     fontSize: 30,
@@ -132,6 +211,10 @@ const styles = StyleSheet.create({
   choreList: {
     gap: 12,
   },
+  emptyText: {
+    color: "#64748B",
+    fontSize: 14,
+  },
   choreCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 22,
@@ -141,9 +224,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-  },
-  choreCardDone: {
-    opacity: 0.65,
   },
   choreTitle: {
     fontSize: 16,
@@ -162,16 +242,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
-  doneButton: {
-    backgroundColor: "#E2E8F0",
-  },
   choreButtonText: {
     color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "700",
-  },
-  doneText: {
-    color: "#64748B",
   },
   rewardRow: {
     flexDirection: "row",
@@ -213,4 +287,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0F172A",
   },
+  
 });
